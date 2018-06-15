@@ -1,5 +1,18 @@
 package Formularios;
 
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+
+import java.io.FileOutputStream;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.CellUtil;
 import com.digitalpersona.onetouch.DPFPDataPurpose;
 import com.digitalpersona.onetouch.DPFPFeatureSet;
 import com.digitalpersona.onetouch.DPFPGlobal;
@@ -26,11 +39,14 @@ import javax.swing.UIManager;
 import BD.ConexionBD;
 import com.digitalpersona.onetouch.verification.DPFPVerificationResult;
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.logging.Level;
@@ -73,6 +89,7 @@ public class CapturaHuella extends javax.swing.JDialog {
         jScrollPane1 = new javax.swing.JScrollPane();
         txtArea = new javax.swing.JTextArea();
         jPanel3 = new javax.swing.JPanel();
+        btnSalir1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Huellas Dactilares - J@RC 2011 4500 Fingerprint Reader DP");
@@ -111,14 +128,14 @@ public class CapturaHuella extends javax.swing.JDialog {
             }
         });
 
-        btnVerificar.setText("Verificar");
+        btnVerificar.setText("TomarEntrada");
         btnVerificar.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnVerificarActionPerformed(evt);
             }
         });
 
-        btnIdentificar.setText("TomarAsistencia");
+        btnIdentificar.setText("TomarSalida");
         btnIdentificar.setPreferredSize(new java.awt.Dimension(71, 23));
         btnIdentificar.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -177,22 +194,33 @@ public class CapturaHuella extends javax.swing.JDialog {
 
         jPanel3.setPreferredSize(new java.awt.Dimension(366, 20));
 
+        btnSalir1.setText("Generar Reporte");
+        btnSalir1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSalir1ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 431, Short.MAX_VALUE)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addComponent(btnSalir1, javax.swing.GroupLayout.PREFERRED_SIZE, 431, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 20, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addComponent(btnSalir1)
+                .addGap(0, 0, Short.MAX_VALUE))
         );
 
         panBtns.add(jPanel3, java.awt.BorderLayout.SOUTH);
 
-        getContentPane().add(panBtns, java.awt.BorderLayout.SOUTH);
+        getContentPane().add(panBtns, java.awt.BorderLayout.CENTER);
 
-        setSize(new java.awt.Dimension(459, 499));
+        setSize(new java.awt.Dimension(459, 533));
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
@@ -201,14 +229,18 @@ public class CapturaHuella extends javax.swing.JDialog {
 }//GEN-LAST:event_btnSalirActionPerformed
 
     private void btnVerificarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerificarActionPerformed
-        String nombre = JOptionPane.showInputDialog("Nombre a verificar:");
-        verificarHuella(nombre);
-        Reclutador.clear();
+
+        try {
+            identificarHuella();
+            Reclutador.clear();
+        } catch (IOException ex) {
+            Logger.getLogger(CapturaHuella.class.getName()).log(Level.SEVERE, null, ex);
+        }
 }//GEN-LAST:event_btnVerificarActionPerformed
 
     private void btnIdentificarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIdentificarActionPerformed
         try {
-            identificarHuella();
+            identificarHuellaSalida();
             Reclutador.clear();
         } catch (IOException ex) {
             Logger.getLogger(CapturaHuella.class.getName()).log(Level.SEVERE, null, ex);
@@ -235,6 +267,11 @@ public class CapturaHuella extends javax.swing.JDialog {
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
         stop();
     }//GEN-LAST:event_formWindowClosing
+
+    private void btnSalir1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSalir1ActionPerformed
+        // TODO add your handling code here:
+
+    }//GEN-LAST:event_btnSalir1ActionPerformed
 
 //Varible que permite iniciar el dispositivo de lector de huella conectado
 // con sus distintos metodos.
@@ -500,6 +537,93 @@ public class CapturaHuella extends javax.swing.JDialog {
         }
     }
 
+    public void GenerarReporte(String id) throws FileNotFoundException, IOException {
+        try {
+            //Establece los valores para la sentencia SQL
+            Connection c = con.conectar();
+            //Obtiene la plantilla correspondiente a la persona indicada
+            PreparedStatement verificarStmt = c.prepareStatement("SELECT s.huenombre,h.* FROM huellas.horarios h , huellas.somhue s  WHERE h.idUsr= s.idsomhue AND idUsr=" + id + "ORDER BY FECHA");
+            ResultSet rs = verificarStmt.executeQuery();
+                HSSFWorkbook workbook = new HSSFWorkbook();
+                HSSFSheet sheet = workbook.createSheet();
+                workbook.setSheetName(0, "Hoja excel");
+                HSSFFont headerFont = workbook.createFont();
+                headerFont.setFontHeightInPoints((short) 12);
+                String[] headers = new String[]{
+                    "Fecha",
+                    "Entrada",
+                    "Salida",
+                    "Entrada",
+                    "Salida"
+                };
+            if (rs.next()){
+                String nombre = rs.getString("huenombre");
+                CellRangeAddress cellRangeAddress = new CellRangeAddress(0, 0, 1, 4);
+                sheet.addMergedRegion(cellRangeAddress);
+                HSSFRow dataRow1 = sheet.createRow(0);
+                Cell cell0 = CellUtil.createCell(dataRow1, 0, "Nombre: ");
+                Cell cell1 = CellUtil.createCell(dataRow1, 1, nombre);
+                
+                
+            }
+            else {
+                JOptionPane.showMessageDialog(null, "No existe un registro de huella para " + id, "Verificacion de Huella", JOptionPane.ERROR_MESSAGE);
+            }
+            //Si se encuentra el nombre en la base de datos
+            while (rs.next()) {
+                Date fecha = rs.getDate("fecha");
+                Time hora = rs.getTime("hora");           
+
+                Object[][] data = new Object[][]{
+                    new Object[]{"2018-06-13", "15:42:40", "15:42:40", "15:42:40", "15:42:40"},
+                    new Object[]{"2018-06-13", "15:42:40", "15:42:40", "15:42:40", "15:42:40"},
+                    new Object[]{"2018-06-13", "15:42:40", "15:42:40", "15:42:40", "15:42:40"}};
+
+                CellStyle headerStyle = workbook.createCellStyle();
+                Font font = workbook.createFont();
+                headerStyle.setFont(font);
+
+                CellStyle style = workbook.createCellStyle();
+                style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
+
+                HSSFRow headerRow = sheet.createRow(1);
+                for (int i = 0; i < headers.length; ++i) {
+                    String header = headers[i];
+                    HSSFCell cell = headerRow.createCell(i);
+                    cell.setCellStyle(headerStyle);
+                    cell.setCellValue(header);
+                }
+                int filaInicial = 2;
+
+                for (int i = 0; i < data.length; ++i) {
+
+                    HSSFRow dataRow = sheet.createRow(filaInicial);
+                    filaInicial++;
+                    Object[] d = data[i];
+                    String product = (String) d[0];
+                    String price = (String) d[1];
+                    String link = (String) d[2];
+
+                    dataRow.createCell(0).setCellValue(product);
+                    dataRow.createCell(1).setCellValue(price);
+                    dataRow.createCell(2).setCellValue(link);
+                    dataRow.createCell(3).setCellValue((String) d[3]);
+                    dataRow.createCell(4).setCellValue((String) d[4]);
+                }
+
+                FileOutputStream file = new FileOutputStream("workbook.xls");
+                workbook.write(file);
+                file.close();
+                //Si no encuentra alguna huella correspondiente al nombre lo indica con un mensaje
+            } 
+        } catch (SQLException e) {
+            //Si ocurre un error lo indica en la consola
+            System.err.println("Error al verificar los datos de la huella.");
+        } finally {
+            con.desconectar();
+        }
+    }
+
     /**
      * Identifica a una persona registrada por medio de su huella digital
      */
@@ -508,7 +632,8 @@ public class CapturaHuella extends javax.swing.JDialog {
             //Establece los valores para la sentencia SQL
             Connection c = con.conectar();
             //Obtiene todas las huellas de la bd
-            PreparedStatement identificarStmt = c.prepareStatement("SELECT huenombre,huehuella FROM somhue");
+            PreparedStatement identificarStmt = c.prepareStatement("SELECT idsomhue,huenombre,huehuella FROM somhue");
+
             ResultSet rs = identificarStmt.executeQuery();
 
             //Si se encuentra el nombre en la base de datos
@@ -516,6 +641,8 @@ public class CapturaHuella extends javax.swing.JDialog {
                 //Lee la plantilla de la base de datos
                 byte templateBuffer[] = rs.getBytes("huehuella");
                 String nombre = rs.getString("huenombre");
+                int id = rs.getInt("idsomhue");
+
                 //Crea una nueva plantilla a partir de la guardada en la base de datos
                 DPFPTemplate referenceTemplate = DPFPGlobal.getTemplateFactory().createTemplate(templateBuffer);
                 //Envia la plantilla creada al objeto contendor de Template del componente de huella digital
@@ -530,6 +657,58 @@ public class CapturaHuella extends javax.swing.JDialog {
                 //e indica el nombre de la persona que coincidió.
                 if (result.isVerified()) {
                     //crea la imagen de los datos guardado de las huellas guardadas en la base de datos
+                    PreparedStatement insert = c.prepareStatement("INSERT INTO horarios (idUsr,fecha,hora,tipo)VALUES ('" + id + "',curdate(),curtime(),'Entrada')");
+                    boolean actualizar = insert.execute();
+                    JOptionPane.showMessageDialog(null, "Las huella capturada es de " + nombre, "Verificacion de Huella", JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
+            }
+            //Si no encuentra alguna huella correspondiente al nombre lo indica con un mensaje
+            JOptionPane.showMessageDialog(null, "No existe ningún registro que coincida con la huella", "Verificacion de Huella", JOptionPane.ERROR_MESSAGE);
+            setTemplate(null);
+        } catch (SQLException e) {
+            //Si ocurre un error lo indica en la consola
+            System.err.println("Error al identificar huella dactilar." + e.getMessage());
+        } finally {
+            con.desconectar();
+        }
+    }
+
+    /**
+     * Identifica a una persona registrada por medio de su huella digital
+     */
+    public void identificarHuellaSalida() throws IOException {
+        try {
+            //Establece los valores para la sentencia SQL
+            Connection c = con.conectar();
+            //Obtiene todas las huellas de la bd
+            PreparedStatement identificarStmt = c.prepareStatement("SELECT idsomhue,huenombre,huehuella FROM somhue");
+
+            ResultSet rs = identificarStmt.executeQuery();
+
+            //Si se encuentra el nombre en la base de datos
+            while (rs.next()) {
+                //Lee la plantilla de la base de datos
+                byte templateBuffer[] = rs.getBytes("huehuella");
+                String nombre = rs.getString("huenombre");
+                int id = rs.getInt("idsomhue");
+
+                //Crea una nueva plantilla a partir de la guardada en la base de datos
+                DPFPTemplate referenceTemplate = DPFPGlobal.getTemplateFactory().createTemplate(templateBuffer);
+                //Envia la plantilla creada al objeto contendor de Template del componente de huella digital
+                setTemplate(referenceTemplate);
+
+                // Compara las caracteriticas de la huella recientemente capturda con la
+                // alguna plantilla guardada en la base de datos que coincide con ese tipo
+                DPFPVerificationResult result = Verificador.verify(featuresverificacion, getTemplate());
+
+                //compara las plantilas (actual vs bd)
+                //Si encuentra correspondencia dibuja el mapa
+                //e indica el nombre de la persona que coincidió.
+                if (result.isVerified()) {
+                    //crea la imagen de los datos guardado de las huellas guardadas en la base de datos
+                    PreparedStatement insert = c.prepareStatement("INSERT INTO horarios (idUsr,fecha,hora,tipo)VALUES ('" + id + "',curdate(),curtime(),'Salida')");
+                    boolean actualizar = insert.execute();
                     JOptionPane.showMessageDialog(null, "Las huella capturada es de " + nombre, "Verificacion de Huella", JOptionPane.INFORMATION_MESSAGE);
                     return;
                 }
@@ -560,6 +739,7 @@ public class CapturaHuella extends javax.swing.JDialog {
     private javax.swing.JButton btnGuardar;
     private javax.swing.JButton btnIdentificar;
     private javax.swing.JButton btnSalir;
+    private javax.swing.JButton btnSalir1;
     private javax.swing.JButton btnVerificar;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
